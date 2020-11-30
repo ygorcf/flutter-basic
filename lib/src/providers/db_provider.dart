@@ -23,15 +23,48 @@ class DBProvider {
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
     final path = join(documentsDirectory.path, 'employee_manager.db');
 
-    return await openDatabase(path, version: 1, onOpen: (db) {},
+    return await openDatabase(path, version: 2, onOpen: (db) {},
         onCreate: (Database db, int version) async {
       await db.execute('CREATE TABLE Employee('
-          'id INTEGER PRIMARY KEY'
-          'email TEXT'
-          'first_name TEXT'
-          'last_name TEXT'
+          'id INTEGER PRIMARY KEY,'
+          'email TEXT,'
+          'first_name TEXT,'
+          'last_name TEXT,'
           'avatar TEXT'
           ')');
     });
+  }
+
+  createEmployee(Employee employee) async {
+    final db = await database;
+    return await db.insert('Employee', {
+      'id': employee.id,
+      'email': employee.email,
+      'first_name': employee.firstName,
+      'last_name': employee.lastName,
+      'avatar': employee.avatar,
+    });
+  }
+
+  Future<int> deleteAllEmployees() async {
+    final db = await database;
+    return await db.rawDelete('DELETE FROM Employee');
+  }
+
+  Future<List<Employee>> listEmployees() async {
+    final db = await database;
+    final res = await db.rawQuery('SELECT * FROM Employee');
+
+    return res.isNotEmpty
+        ? res
+            .map((employee) => Employee(
+                  id: employee['id'],
+                  email: employee['email'],
+                  firstName: employee['first_name'],
+                  lastName: employee['last_name'],
+                  avatar: employee['avatar'],
+                ))
+            .toList()
+        : [];
   }
 }

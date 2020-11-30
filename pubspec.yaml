@@ -30,6 +30,9 @@ dependencies:
   cupertino_icons: ^1.0.0
   path_provider:
   sqflite:
+  dio:
+  camera:
+  path:
 
 dev_dependencies:
   flutter_test:

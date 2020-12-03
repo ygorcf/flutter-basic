@@ -1,7 +1,13 @@
+import 'dart:convert';
+
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:uni_links/uni_links.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_basic/src/models/employee_model.dart';
+import 'package:flutter_basic/src/models/item_model.dart';
+import 'package:flutter_basic/src/models/payment_model.dart';
 import 'package:flutter_basic/src/pages/camera_page.dart';
 import 'package:flutter_basic/src/providers/db_provider.dart';
 import 'package:flutter_basic/src/providers/employee_api_provider.dart';
@@ -16,6 +22,8 @@ class HomePage extends StatefulWidget {
 class HomePageState extends State<HomePage> with WidgetsBindingObserver {
   var isLoading = false;
   var currentPage = 1;
+  var logText = '';
+
   ScrollController controller;
   CameraController cameraController;
   Future<void> cameraFuture;
@@ -66,11 +74,25 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
         ),
         body: Column(
           children: [
-            ElevatedButton(
-              child: Text('Camera'),
-              onPressed: () {
-                _openCamera();
-              },
+            Row(
+              children: [
+                ElevatedButton(
+                  child: Text('Camera'),
+                  onPressed: () {
+                    _openCamera();
+                  },
+                ),
+                ElevatedButton(
+                  child: Text('Pagar'),
+                  onPressed: () {
+                    _openPayment();
+                  },
+                ),
+              ],
+            ),
+            Container(
+              child: SingleChildScrollView(child: Text(logText)),
+              height: 100,
             ),
             Expanded(
                 child: isLoading
@@ -85,13 +107,25 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
   _loadFromApi() async {
     setState(() {
       isLoading = true;
+      logText += 'Iniciando _loadFromApi\n\n';
     });
 
-    final apiProvider = EmployeeApiProvider();
-    await apiProvider.getEmployees(currentPage);
+    try {
+      final apiProvider = EmployeeApiProvider();
+      await apiProvider.getEmployees(currentPage, (log) {
+        setState(() {
+          logText += log + '\n\n';
+        });
+      });
+    } catch (e) {
+      setState(() {
+        logText += "--> ERROR, exception: $e";
+      });
+    }
 
     setState(() {
       isLoading = false;
+      logText += 'Finalizado _loadFromApi\n\n';
       currentPage++;
     });
   }
@@ -138,5 +172,52 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   _openCamera() async {
     Navigator.push(context, MaterialPageRoute(builder: (_) => CameraPage()));
+  }
+
+  _openPayment() async {
+    try {
+      await getInitialLink();
+    } catch (e) {
+      print("error");
+    }
+
+    setState(() {
+      logText += 'Criando pagamento\n\n';
+    });
+    final payment = Payment(
+        accessToken: 'JubsJAREppNep0lBKqatM3Sq2STALYOgYs2wNUkUEC0kd8YqgC',
+        clientId: 'xhbLVNJN7DFPp95QS4JHqi8atKR9zfyezaavnvITvCU82bGW6E',
+        email: 'ygorcruzfelix@gmail.com',
+        installments: 0,
+        merchantCode: "",
+        paymentCode: 'CREDITO_AVISTA',
+        items: [
+          Item(
+              id: '1111',
+              name: 'COca cola lata',
+              quantity: 1,
+              unitOfMeasure: "unidade",
+              unitPrice: 1)
+        ],
+        value: 1);
+
+    final paymentEncoded =
+        base64.encode(utf8.encode(json.encode(payment.toJson())));
+    final url =
+        'lio://payment?request=$paymentEncoded&urlCallback=order://payment';
+
+    setState(() {
+      logText += 'Criado pagamento e verificando se pode abrir pagamento\n\n';
+    });
+    if (await canLaunch(url)) {
+      setState(() {
+        logText += 'Abrindo lio de pagamento\n\n';
+      });
+      await launch(url);
+    } else {
+      setState(() {
+        logText += 'Nao pode abrir a lio de pagamento\n\n';
+      });
+    }
   }
 }

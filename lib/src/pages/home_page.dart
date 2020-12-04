@@ -189,7 +189,7 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
         clientId: 'xhbLVNJN7DFPp95QS4JHqi8atKR9zfyezaavnvITvCU82bGW6E',
         email: 'ygorcruzfelix@gmail.com',
         installments: 0,
-        merchantCode: "",
+        merchantCode: null,
         paymentCode: 'CREDITO_AVISTA',
         items: [
           Item(
@@ -199,10 +199,12 @@ class HomePageState extends State<HomePage> with WidgetsBindingObserver {
               unitOfMeasure: "unidade",
               unitPrice: 1)
         ],
-        value: 1);
+        value: '1');
 
-    final paymentEncoded =
-        base64.encode(utf8.encode(json.encode(payment.toJson())));
+    final jsonPayment = json.encode(payment.toJson());
+    print(jsonPayment);
+
+    final paymentEncoded = base64.encode(utf8.encode(jsonPayment));
     final url =
         'lio://payment?request=$paymentEncoded&urlCallback=order://payment';
 
